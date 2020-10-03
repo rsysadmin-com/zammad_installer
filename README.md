@@ -2,6 +2,8 @@
 This little script aims to simplify and to automate as much as possible the whole Zammad installation process described here:
 https://docs.zammad.org/en/latest/install/centos.html
 
+Of course, there are a few Ansible playbooks that you may use as well. I started as an old-school UNIX-SysAdmin and, even though I use all those Infrastructure as Code Tools, I still feel that a script is a good way to go.
+
 It has been tested to correctly work on CentOS 8 for now.
 Other CentOS versions and distributions may come as long as I have the time to adapt my code.
 
