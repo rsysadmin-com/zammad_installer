@@ -5,7 +5,7 @@
 # 20201005 - Martin Mielke <martinm@rsysadmin.com>
 #
 # quick and dirty script to install Zammad based on the instructions described here:
-# https://docs.zammad.org/en/latest/install/centos.html
+# https://docs.zammad.org/en/latest/install/ubuntu.html
 #
 # Target OS: Ubuntu
 #
@@ -16,8 +16,8 @@
 # that this little tool may cause.
 #
 
-# soem variables
-zammad_fqdn=$(hostname -f)                # i.e.: helpdesk.domain.tld
+# some variables
+zammad_fqdn=$HOSTNAME                       # use the system's variables
 ssl_crt=/etc/nginx/ssl/${zammad_fqdn}.crt
 ssl_key=/etc/nginx/ssl/${zammad_fqdn}.key
 ssl_csr=/etc/nginx/ssl/${zammad_fqdn}.csr
@@ -27,6 +27,11 @@ dns1=8.8.8.8    # or use your own DNS
 dns2=8.8.4.4
 
 # ---- YOU SHOULD NOT NEED TO EDIT BELOW THIS LINE ----
+
+# output everything to a log file - you will need it if something goes wrong
+zammadLog=./zammad_install-$(date +"%Y%m%d-%T").log
+exec > >(tee -i $zammadLog)
+exec 2>&1
 
 # check that we are running this as the root user
 if [ $UID -ne 0 ]
@@ -59,7 +64,7 @@ EOF
 # Install and configure prerequisites first...
 
 echo -e "== Installing prerequisites..."
-apt-get install apt-transport-https wget selinux selinux-utils semanage-utils firewalld -y
+apt-get install apt-transport-https wget firewalld -y
 
 
 echo -e "== Importing ElasticSearch repository key\t\c"
@@ -70,7 +75,7 @@ wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
 checkStatus
 
 apt-get update -y
-apt-get install elasticsearch -y 
+apt-get install openjdk-8-jdk elasticsearch -y 
 
 echo -e "== Installing ingest-attachment plugin"
 /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch ingest-attachment
@@ -265,10 +270,6 @@ server {
 " > /etc/nginx/conf.d/zammad_ssl.conf
 checkStatus
 
-echo -e "== Updating SELinux settings\t\c"
-setsebool httpd_can_network_connect on -P
-checkStatus
-
 echo "== Setting up your firewall..."
 echo -e "-- adding HTTP service"
 firewall-cmd -q --zone=public --add-service=http --permanent
@@ -279,14 +280,11 @@ firewall-cmd -q --zone=public --add-service=https --permanent
 echo -e "-- reloading firewall with new settings"
 firewall-cmd -q --reload
 
-
 echo -e "== Connecting Zammad and ElasticSearch"
 zammad run rails r "Setting.set('es_url', 'http://localhost:9200')"
 
-
 echo -e "== Rebuilding indexes"
 zammad run rake searchindex:rebuild  > /dev/null
-
 
 echo -e "== Doing some final configuration on Zammad"
 zammad run rails r "Setting.set('es_index', Socket.gethostname.downcase + '_zammad')"
@@ -297,8 +295,6 @@ zammad run rails r "Setting.set('es_attachment_ignore', [ '.png', '.jpg', '.jpeg
 echo -e "== Setting maximum size for attachements to be indexed"
 zammad run rails r "Setting.set('es_attachment_max_size_in_mb', 50)"
 
-
-
 echo "== Generating dhparam.pem file... seat back and relax... :-)"
 openssl dhparam -out $ssl_dhp 4096 
 
@@ -307,8 +303,9 @@ systemctl restart elasticsearch
 systemctl restart zammad
 systemctl restart nginx
 
-echo -e "\n\nZammad is ready...\n"
+echo -e "\n\n== Zammad is ready: http://$zammad_fqdn \n"
 
 
 
 
+# The End.
