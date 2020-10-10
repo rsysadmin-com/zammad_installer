@@ -16,8 +16,8 @@
 # that this little tool may cause.
 #
 
-# soem variables
-zammad_fqdn=$(hostname -f)                # i.e.: helpdesk.domain.tld
+# some variables
+zammad_fqdn=$HOSTNAME                       # use the system's variables
 ssl_crt=/etc/nginx/ssl/${zammad_fqdn}.crt
 ssl_key=/etc/nginx/ssl/${zammad_fqdn}.key
 ssl_csr=/etc/nginx/ssl/${zammad_fqdn}.csr
@@ -27,6 +27,11 @@ dns1=8.8.8.8    # or use your own DNS
 dns2=8.8.4.4
 
 # ---- YOU SHOULD NOT NEED TO EDIT BELOW THIS LINE ----
+
+# output everything to a log file - you will need it if something goes wrong
+zammadLog=./zammad_install-$(date +"%Y%m%d-%T").log
+exec > >(tee -i $zammadLog)
+exec 2>&1
 
 # check that we are running this as the root user
 if [ $UID -ne 0 ]
@@ -38,9 +43,9 @@ fi
 # little banner
 cat << EOF
 
-=== Zammad Installer - v.0.001 ===
+=== Zammad Installer - v.0.001 (CentOS) ===
     by: martinm@rsysadmin.com
-----------------------------------
+-------------------------------------------
 
 EOF
 
@@ -53,6 +58,13 @@ fi
 # main()
 
 # Install and configure prerequisites first...
+
+# install EPEL repo if not there
+if [ ! -r /etc/yum.repos.d/epel.repo ]
+then
+  action "== Installing EPEL directory"
+  yum install -y epel-release
+fi
 
 action "== Importing ElasticSearch repository key"
 rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
@@ -100,22 +112,17 @@ indices.query.bool.max_clause_count: 2000
 
 " >> /etc/elasticsearch/elasticsearch.yml
 
-
 action "== Setting vm.max_map_count for ElasticSearch"
 sysctl -w vm.max_map_count=262144 > /dev/null
-
 
 action "== Reloading some daemons"
 systemctl daemon-reload
 
-
 action "== Enabling and starting ElasticSearch"
 systemctl -q enable --now elasticsearch 
 
-
 action "== Adding Zammad repository to the system"
 wget -O /etc/yum.repos.d/zammad.repo https://dl.packager.io/srv/zammad/zammad/stable/installer/el/8.repo
-
 
 echo -e "== Installing Zammad..."
 yum install zammad -y 
@@ -259,10 +266,8 @@ server {
 
 " > /etc/nginx/conf.d/zammad_ssl.conf
 
-
 action "== Updating SELinux settings"
 setsebool httpd_can_network_connect on -P
-
 
 echo "== Setting up your firewall..."
 action "-- adding HTTP service"
@@ -274,14 +279,11 @@ firewall-cmd -q --zone=public --add-service=https --permanent
 action "-- reloading firewall with new settings"
 firewall-cmd -q --reload
 
-
 action "== Connecting Zammad and ElasticSearch"
 zammad run rails r "Setting.set('es_url', 'http://localhost:9200')"
 
-
 action "== Rebuilding indexes"
 zammad run rake searchindex:rebuild  > /dev/null
-
 
 action "== Doing some final configuration on Zammad"
 zammad run rails r "Setting.set('es_index', Socket.gethostname.downcase + '_zammad')"
@@ -292,8 +294,6 @@ zammad run rails r "Setting.set('es_attachment_ignore', [ '.png', '.jpg', '.jpeg
 action "== Setting maximum size for attachements to be indexed"
 zammad run rails r "Setting.set('es_attachment_max_size_in_mb', 50)"
 
-
-
 echo "== Generating dhparam.pem file... seat back and relax... :-)"
 openssl dhparam -out $ssl_dhp 4096 
 
@@ -302,6 +302,7 @@ systemctl restart elasticsearch
 systemctl restart zammad
 systemctl restart nginx
 
-echo -e "\n\nZammad is ready...\n"
+echo -e "\n\n== Zammad is ready: http://$zammad_fqdn \n"
 
 
+# The End.
