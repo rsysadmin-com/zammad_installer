@@ -1,10 +1,9 @@
 # zammad_installer
-This little script aims to simplify and to automate as much as possible the whole Zammad installation process described here:
+This little script aims to simplify and to automate as much as possible the whole Zammad installation process as described here:
 https://docs.zammad.org/en/latest/install/centos.html
 https://docs.zammad.org/en/latest/install/ubuntu.html
-https://docs.zammad.org/en/latest/install/suse.html
 
-Of course, there are a few Ansible playbooks that you may use as well. I started as an old-school UNIX-SysAdmin and, even though I use all those Infrastructure as Code Tools, I still feel that a script is a good way to go.
+Of course, there are a few Ansible playbooks that you may use as well. They did not work for me. I started as an old-school UNIX-SysAdmin and, even though I use all those Infrastructure as Code Tools [shameless self-promotion: I'm also a GCP Architect :-)], I still feel that a shell script is a good way to go.
 
 Please download the right version for your operating system:
 * CentOS 8      : zammad_installer.sh
@@ -44,7 +43,13 @@ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
 
 ## btw
 Please make sure that your hostname is a FQDN and is added to your DNS or /etc/hosts file.
-nginx will be configured for you using that FQDN
+nginx will be configured for you using that FQDN.
+Run:
+``` 
+echo $HOSTNAME
+``` 
+to get the your system's FQDN.
+If you do not know what I am talking about, just run the script and hope for the best :-)
 
 ## usage
 First off, you must be root to run this installer.
