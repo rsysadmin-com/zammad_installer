@@ -11,7 +11,7 @@ Please download the right version for your operating system:
 * Ubuntu        : zammad_installer_ubuntu.sh
 * OpenSUSE 42   : zammad_installer_suse.sh
 
-These scripts have been proven to flawlessly work under CentOS 8 and Ubuntu 18.10.
+These scripts have been proven to flawlessly work under CentOS 8, Ubuntu 18.10 and OpenSUSE 42.
 
 ## before you run this...
 There are at least 2 things that you may need to keep in mind for a Production Enviroment, namely:
