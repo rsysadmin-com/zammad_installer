@@ -46,6 +46,7 @@ function checkStatus() {
         echo -e "[  OK!  ]\n"
     else 
         echo -e "[ ERROR ]\n"
+        exit 1
     fi
 
 }
