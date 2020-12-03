@@ -121,8 +121,9 @@ systemctl -q enable --now elasticsearch
 checkStatus
 
 echo -e "== Adding Zammad repository to the system\t\c"
-wget -qO- https://dl.packager.io/srv/zammad/zammad/key | sudo apt-key add -
-wget -O /etc/apt/sources.list.d/zammad.list https://dl.packager.io/srv/zammad/zammad/stable/installer/ubuntu/18.04.repo
+ubuntu_version=$(grep DISTRIB_RELEASE /etc/lsb-release | awk -F= '{ print $2 }')
+wget -qO - https://dl.packager.io/srv/zammad/zammad/key | sudo apt-key add -
+wget -O /etc/apt/sources.list.d/zammad.list https://dl.packager.io/srv/zammad/zammad/stable/installer/ubuntu/${ubuntu_version}.repo
 checkStatus
 
 echo -e "== Installing Zammad..."
