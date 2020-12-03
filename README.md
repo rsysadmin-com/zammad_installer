@@ -28,7 +28,7 @@ ssl_key=/etc/nginx/ssl/${zammad_fqdn}.key
 ssl_csr=/etc/nginx/ssl/${zammad_fqdn}.csr
 ``` 
 
-In that case, it could be a good idea to either comment or delete this part of the script (taken from the CentOS version; other distributions will have an //echo -e// instead of //action//):
+In that case, it could be a good idea to either comment or delete this part of the script (taken from the CentOS version; other distributions will have an "echo -e" instead of "action"):
 ``` 
 action "== Generating self-signed SSL certs..."
 # generate key and csr 
