@@ -46,7 +46,7 @@ function checkStatus() {
         echo -e "\t[  OK!  ]\n"
     else 
         echo -e "\t[ ERROR ]\n"
-        exit
+        exit 1
     fi
 
 }
@@ -54,7 +54,7 @@ function checkStatus() {
 # little banner
 cat << EOF
 
-=== Zammad Installer - v.0.001 ((Open)SUSE) ===
+=== Zammad Installer - v.0.002 ((Open)SUSE) ===
     by: martinm@rsysadmin.com
 -----------------------------------------------
 
@@ -64,7 +64,18 @@ EOF
 
 # Install and configure prerequisites first...
 echo -e "== Installing prerequisites..."
-zypper install -y wget insserv-compat firewalld 
+zypper install -y wget insserv-compat firewalld
+
+# are we running on Tumbleweed?
+if [ $(grep ^ID= /etc/*release | awk -F= '{ print $2 }') = "\"opensuse-tumbleweed\"" ]
+then
+  echo "== Adding some extra repositories for Tumbleweed"
+  zypper ar https://download.opensuse.org/repositories/home:jgrassler:monasca/openSUSE_Tumbleweed/home:jgrassler:monasca.repo
+  zypper --gpg-auto-import-keys ref
+  echo "== Installing libmysqlclient18"
+  zypper install -y libmysqlclient18
+  checkStatus
+fi
 
 echo -e "== Importing ElasticSearch repository key\c"
 rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
