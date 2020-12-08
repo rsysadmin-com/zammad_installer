@@ -11,10 +11,10 @@ Please download the right version for your operating system:
 * Ubuntu        : zammad_installer_ubuntu.sh
 * OpenSUSE 42   : zammad_installer_suse.sh
 
-These scripts have been proven to flawlessly work under CentOS 8, Ubuntu 18.10 and OpenSUSE 42.
+These scripts have been proven to flawlessly work under CentOS 8, Ubuntu 18.x/20.x (version is automatically detected) and OpenSUSE 42.
 
 ## before you run this...
-There are at least 2 things that you may need to keep in mind for a Production Enviroment, namely:
+There are at least 2 things that you may need to adjust in a Production Enviroment, namely:
 
 1. the DNS entries, currently set to Google's public DNS
 ```
@@ -41,7 +41,10 @@ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
     -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=server" \
     -keyout $ssl_key -out $ssl_crt
 
-``` 
+```
+...or just let the script run as it comes out-of-the-box and simply adjust the path to your own certificates on your zammad_ssl.conf file once the install process is completed.
+
+The Zammad installer will not check for any proxy settings and will continue assuming that your system can access the web. It is a common mistake to forget this previous step if needed within your organization.
 
 ## btw
 Please make sure that your hostname is a FQDN and is added to your DNS or /etc/hosts file.
@@ -59,8 +62,8 @@ First off, you must be root to run this installer.
 Using this installer is pretty straight-forward:
 1. clone this repo
 2. cd zammad_installer
-3. chmod +x ./zammad_installer.sh (or ./zammad_installer_ubuntu.sh or ./zammad_installer_suse.sh)
-4. ./zammad_installer.sh (or ./zammad_installer_ubuntu.sh)
+3. chmod +x ./zammad_installer.sh (or ./zammad_installer_ubuntu.sh or ./zammad_installer_suse.sh or ./zammad_installer_suse.sh)
+4. ./zammad_installer.sh (or ./zammad_installer_ubuntu.sh or ./zammad_installer_suse.sh)
 
 And, please, be very patient... it will take some time to install everything for you.
 
@@ -71,7 +74,7 @@ Good question. To which I have to say:
 
 WARNING - do NOT run this installer again - this could wreck your existing Zammad installation!
 
-You will need to edit the files where the changes are needed. 
+You will need to directly edit the files where the changes are needed. 
 
 A typical case would be /etc/nginx/conf.d/zammad_ssl.conf because, say, you want to access your Zammad server using other CNAME. In that case, just append the new CNAME in the server_name variable (line numbers may differ):
 
@@ -94,6 +97,12 @@ and here:
 ```
 In this case, do not forget to restart nginx.
 
+## oops! something went wrong... what now?
+Sometimes things can go South... in that case, you will find a log file in the same directory where the Zammad installer was executed which transcripts everthing that was displayed on your console.
+
+Please take a look at it and search for errors so you know that needs to be fixed.
+
 ## disclaimer
-this script is provided on an "AS IS" basis. 
+this script is provided on an "AS IS" basis to the Zammad Community. 
 The author is not to be held responsible for any damage that it use or misuse may cause.
+
