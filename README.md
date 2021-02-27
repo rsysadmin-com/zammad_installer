@@ -44,7 +44,7 @@ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
     -keyout $ssl_key -out $ssl_crt
 
 ```
-...or just let the script run as it comes out-of-the-box and simply adjust the path to your own certificates on your zammad_ssl.conf file once the install process is completed.
+...or just let the script run as it comes out-of-the-box and simply adjust the path to your own certificates on your zammad_ssl.conf file once the install process is completed, which is what I do.
 
 The Zammad installer will not check for any proxy settings and will continue assuming that your system can access the web. It is a common mistake to forget this previous step if needed within your organization.
 
