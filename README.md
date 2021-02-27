@@ -2,6 +2,7 @@
 This little script aims to simplify and to automate as much as possible the whole Zammad installation process as described here:
 * https://docs.zammad.org/en/latest/install/centos.html
 * https://docs.zammad.org/en/latest/install/ubuntu.html
+* https://docs.zammad.org/en/latest/install/debian.html
 * https://docs.zammad.org/en/latest/install/suse.html
 
 Of course, there are a few Ansible playbooks that you may use as well. They did not work for me. I started as an old-school UNIX-SysAdmin and, even though I use all those Infrastructure as Code Tools [shameless self-promotion: I'm also a GCP Architect :-)], I still feel that a shell script is a good way to go.
@@ -9,6 +10,7 @@ Of course, there are a few Ansible playbooks that you may use as well. They did 
 Please download the right version for your operating system:
 * CentOS 8      : zammad_installer.sh
 * Ubuntu        : zammad_installer_ubuntu.sh
+* Debian 10	: zammad_installer_debian.sh
 * OpenSUSE 42   : zammad_installer_suse.sh
 
 These scripts have been proven to flawlessly work under CentOS 8, Ubuntu 18.x/20.x (version is automatically detected) and OpenSUSE 42.
@@ -21,7 +23,7 @@ There are at least 2 things that you may need to adjust in a Production Envirome
 dns1=8.8.8.8    # or use your own DNS
 dns2=8.8.4.4
 ``` 
-2. the path to your SSL certificates if you have your own
+2. the path to your SSL certificates if you have your own - otherwise, the script will generate them for you.
 ```
 ssl_crt=/etc/nginx/ssl/${zammad_fqdn}.crt
 ssl_key=/etc/nginx/ssl/${zammad_fqdn}.key
@@ -62,8 +64,8 @@ First off, you must be root to run this installer.
 Using this installer is pretty straight-forward:
 1. clone this repo
 2. cd zammad_installer
-3. chmod +x ./zammad_installer.sh (or ./zammad_installer_ubuntu.sh or ./zammad_installer_suse.sh or ./zammad_installer_suse.sh)
-4. ./zammad_installer.sh (or ./zammad_installer_ubuntu.sh or ./zammad_installer_suse.sh)
+3. chmod +x ./zammad_installer.sh (or the one that fits your Linux distribution)
+4. ./zammad_installer.sh (or the one that fits your Linux distribution)
 
 And, please, be very patient... it will take some time to install everything for you.
 
@@ -101,6 +103,9 @@ In this case, do not forget to restart nginx.
 Sometimes things can go South... in that case, you will find a log file in the same directory where the Zammad installer was executed which transcripts everthing that was displayed on your console.
 
 Please take a look at it and search for errors so you know that needs to be fixed.
+
+Additionally, it is worth paying a visit to the Zammad forums: https://community.zammad.org/ if you still have problems.
+The Zammad Community is very helpfull. 
 
 ## disclaimer
 this script is provided on an "AS IS" basis to the Zammad Community. 
