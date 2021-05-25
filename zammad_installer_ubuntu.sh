@@ -139,7 +139,7 @@ find /opt/zammad/public -type f -exec chmod 644 {} \;             # remove these
 checkStatus
 
 echo -e "== Creating /etc/nginx/ssl directory\t\c"
-mkdir /etc/nginx/ssl
+mkdir -p /etc/nginx/ssl
 checkStatus
 
 echo -e "== Generating self-signed SSL certs..."
