@@ -8,12 +8,12 @@ This little script aims to simplify and to automate as much as possible the whol
 Of course, there are a few Ansible playbooks that you may use as well. They did not work for me. I started as an old-school UNIX-SysAdmin and, even though I use all those Infrastructure as Code Tools [shameless self-promotion: I'm also a GCP Architect :-)], I still feel that a shell script is a good way to go.
 
 Please download the right version for your operating system:
-* CentOS 8      : zammad_installer.sh
+* CentOS 8/RockyLinux      : zammad_installer.sh
 * Ubuntu        : zammad_installer_ubuntu.sh
 * Debian 10	: zammad_installer_debian.sh
 * OpenSUSE 42   : zammad_installer_suse.sh
 
-These scripts have been proven to flawlessly work under CentOS 8, Ubuntu 18.x/20.x (version is automatically detected) and OpenSUSE 42.
+These scripts have been proven to flawlessly work under CentOS 8/RockyLinux, Ubuntu 18.x/20.x (version is automatically detected) and OpenSUSE 42.
 
 ## before you run this...
 There are at least 2 things that you may need to adjust in a Production Enviroment, namely:
