@@ -65,7 +65,7 @@ EOF
 # Install and configure prerequisites first...
 
 echo -e "== Installing prerequisites..."
-apt-get install apt-transport-https wget firewalld -y
+apt-get install apt-transport-https wget firewalld nginx -y
 
 
 echo -e "== Importing ElasticSearch repository key\t\c"

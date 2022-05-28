@@ -64,7 +64,7 @@ EOF
 
 # Install and configure prerequisites first...
 echo -e "== Installing prerequisites..."
-zypper install -y wget insserv-compat firewalld
+zypper install -y wget insserv-compat firewalld nginx
 
 # are we running on Tumbleweed?
 if [ $(grep ^ID= /etc/*release | awk -F= '{ print $2 }') = "\"opensuse-tumbleweed\"" ]

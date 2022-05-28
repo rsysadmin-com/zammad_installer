@@ -84,6 +84,9 @@ type=rpm-md" > /etc/yum.repos.d/elasticsearch-7.x.repo
 echo "== Installing Java OpenJDK and ElasticSearch..."
 yum install java-1.8.0-openjdk elasticsearch -y 
 
+echo "== Installing nginx..."
+yum install nginx -y 
+
 action "== Installing ingest-attachment plugin."
 /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch ingest-attachment
 
