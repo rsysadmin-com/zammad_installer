@@ -74,7 +74,7 @@ checkStatus
 echo -e "-- adding apt key\t\c"
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
 checkStatus
-
+apt-get update -y
 apt-get install openjdk-11-jdk elasticsearch -y 
 
 echo -e "== Installing ingest-attachment plugin"
