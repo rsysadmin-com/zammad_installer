@@ -13,7 +13,7 @@ Please download the right version for your operating system:
 * Debian 10	: zammad_installer_debian.sh
 * OpenSUSE 42   : zammad_installer_suse.sh
 
-These scripts have been proven to flawlessly work under CentOS 8/RockyLinux/AlmaLinux, Ubuntu 18.x/20.x (version is automatically detected) and OpenSUSE 42.
+These scripts have been proven to flawlessly work under CentOS 8/RockyLinux/AlmaLinux, Ubuntu 18.x/20.x/22.x (version is automatically detected) and OpenSUSE 42.
 
 ## before you run this...
 There are at least 2 things that you may need to adjust in a Production Enviroment, namely:
