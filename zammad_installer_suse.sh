@@ -300,7 +300,7 @@ echo -e "== Connecting Zammad and ElasticSearch"
 zammad run rails r "Setting.set('es_url', 'http://localhost:9200')"
 
 echo -e "== Rebuilding indexes"
-zammad run rake searchindex:rebuild  > /dev/null
+zammad run rake zammad:searchindex:rebuild  > /dev/null
 
 echo -e "== Doing some final configuration on Zammad"
 zammad run rails r "Setting.set('es_index', Socket.gethostname.downcase + '_zammad')"

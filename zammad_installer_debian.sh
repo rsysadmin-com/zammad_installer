@@ -65,8 +65,8 @@ EOF
 # Install and configure prerequisites first...
 
 echo -e "== Installing prerequisites..."
+apt-get update -y
 apt-get install apt-transport-https wget locales sudo gnupg2 firewalld nginx -y
-
 
 echo -e "== Importing ElasticSearch repository key\t\c"
 echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
@@ -75,7 +75,6 @@ echo -e "-- adding apt key\t\c"
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
 checkStatus
 
-apt-get update -y
 apt-get install openjdk-11-jdk elasticsearch -y 
 
 echo -e "== Installing ingest-attachment plugin"

@@ -65,8 +65,8 @@ EOF
 # Install and configure prerequisites first...
 
 echo -e "== Installing prerequisites..."
+apt-get update -y
 apt-get install apt-transport-https wget firewalld nginx -y
-
 
 echo -e "== Importing ElasticSearch repository key\t\c"
 echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
@@ -75,7 +75,7 @@ echo -e "-- adding apt key\t\c"
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
 checkStatus
 
-apt-get update -y
+
 apt-get install openjdk-8-jdk elasticsearch -y 
 
 echo -e "== Installing ingest-attachment plugin"
@@ -286,7 +286,7 @@ echo -e "== Connecting Zammad and ElasticSearch"
 zammad run rails r "Setting.set('es_url', 'http://localhost:9200')"
 
 echo -e "== Rebuilding indexes"
-zammad run rake searchindex:rebuild  > /dev/null
+zammad run rake zammad:searchindex:rebuild  > /dev/null
 
 echo -e "== Doing some final configuration on Zammad"
 zammad run rails r "Setting.set('es_index', Socket.gethostname.downcase + '_zammad')"
