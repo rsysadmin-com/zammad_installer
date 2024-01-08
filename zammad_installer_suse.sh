@@ -166,7 +166,7 @@ openssl req -new -newkey rsa:4096 -nodes \
 
 # generate self-signed passwordless certificate 
 openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
-    -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=server" \
+    -subj "/C=CH/ST=Denial/L=Springfield/O=Dis/CN=server" \
     -keyout $ssl_key -out $ssl_crt
 
 # determine nginx's root directory - best effort
