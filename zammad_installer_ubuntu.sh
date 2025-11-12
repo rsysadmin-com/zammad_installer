@@ -3,11 +3,23 @@
 # Zammad installer
 #
 # 20201005 - Martin Mielke <martinm@rsysadmin.com>
+# 20251110 - Updated for Ubuntu 24.04.3 LTS
 #
 # quick and dirty script to install Zammad based on the instructions described here:
 # https://docs.zammad.org/en/latest/install/ubuntu.html
 #
-# Target OS: Ubuntu
+# Target OS: Ubuntu 24.04.3 LTS (compatible with 20.04+)
+#
+# Changes in latest version:
+# - Updated to Elasticsearch 8.x (includes bundled JDK)
+# - Enabled Elasticsearch 8.x security with HTTPS and authentication
+# - Automatic SSL certificate configuration for Zammad
+# - Secure password generation for Elasticsearch
+# - Removed ingest-attachment plugin installation (bundled in ES 8.x)
+# - Modernized TLS configuration (TLSv1.2 + TLSv1.3)
+# - Updated SSL cipher suite for better security
+# - Fixed apt-key deprecation (using gpg --dearmor with keyrings)
+# - Removed deprecated file permission fix
 #
 # Feel free to change this to fit your needs.
 #
@@ -54,9 +66,10 @@ function checkStatus() {
 # little banner
 cat << EOF
 
-=== Zammad Installer - v.0.001 (Ubuntu) ===
+=== Zammad Installer - v.0.002 (Ubuntu 24.04.3) ===
     by: martinm@rsysadmin.com
--------------------------------------------
+    Updated: 2025-11-10 for Ubuntu 24.04.3 LTS
+-------------------------------------------------
 
 EOF
 
@@ -66,44 +79,36 @@ EOF
 
 echo -e "== Installing prerequisites..."
 apt-get update -y
-apt-get install apt-transport-https wget firewalld nginx -y
+apt-get install apt-transport-https wget gpg firewalld nginx -y
 
 echo -e "== Importing ElasticSearch repository key\t\c"
-echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
 checkStatus
-echo -e "-- adding apt key\t\c"
-wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+echo -e "-- adding repository\t\c"
+echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | tee /etc/apt/sources.list.d/elastic-8.x.list > /dev/null
 checkStatus
 
 apt-get update -y
-apt-get install openjdk-8-jdk elasticsearch -y 
-echo -e "== Installing ingest-attachment plugin"
-/usr/share/elasticsearch/bin/elasticsearch-plugin install --batch ingest-attachment
+# Note: Elasticsearch 8.x includes a bundled JDK (no separate Java installation needed)
+apt-get install elasticsearch -y
+echo -e "== Note: Elasticsearch 8.x includes bundled JDK and ingest-attachment plugin"
 
-echo -e "== Adding recommended ElasticSearch configuration\t\c"
-echo "
+echo -e "== Configuring ElasticSearch for Zammad\t\c"
+# Remove any existing Zammad configuration to prevent duplicates
+sed -i '/# Zammad:/d' /etc/elasticsearch/elasticsearch.yml
+sed -i '/^http\.max_content_length:/d' /etc/elasticsearch/elasticsearch.yml
+sed -i '/^indices\.query\.bool\.max_clause_count:/d' /etc/elasticsearch/elasticsearch.yml
 
-# Zammad Stuff
-#
-# Tickets above this size (articles + attachments + metadata)
-# may fail to be properly indexed (Default: 100mb).
-#
-# When Zammad sends tickets to Elasticsearch for indexing,
-# it bundles together all the data on each individual ticket
-# and issues a single HTTP request for it.
-# Payloads exceeding this threshold will be truncated.
-#
-# Performance may suffer if it is set too high.
+# Add Zammad-specific configuration
+cat >> /etc/elasticsearch/elasticsearch.yml << 'ESCONFIG'
+
+# Zammad: Increase max content length for large tickets (Default: 100mb)
 http.max_content_length: 400mb
 
-# Allows the engine to generate larger (more complex) search queries.
-# Elasticsearch will raise an error or deprecation notice if this value is too low,
-# but setting it too high can overload system resources (Default: 1024).
-#
-# Available in version 6.6+ only.
+# Zammad: Allow more complex search queries (Default: 1024)
 indices.query.bool.max_clause_count: 2000
+ESCONFIG
 
-" >> /etc/elasticsearch/elasticsearch.yml
 checkStatus
 
 
@@ -116,13 +121,53 @@ systemctl daemon-reload
 checkStatus
 
 echo -e "== Enabling and starting ElasticSearch\t\c"
-systemctl -q enable --now elasticsearch 
+systemctl -q enable --now elasticsearch
 checkStatus
+
+echo -e "== Waiting for ElasticSearch to start up..."
+# Wait for Elasticsearch to be fully ready
+for i in {1..30}; do
+  if curl -s -k https://localhost:9200 > /dev/null 2>&1; then
+    echo "ElasticSearch is ready!"
+    break
+  fi
+  if [ $i -eq 30 ]; then
+    echo "WARNING: ElasticSearch may not be fully started"
+  fi
+  sleep 2
+done
+
+echo -e "== Generating and setting ElasticSearch password\t\c"
+# Auto-generate a strong password for the elastic user in batch mode
+ES_PASSWORD_OUTPUT=$(/usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -a -b 2>&1)
+if [ $? -eq 0 ]; then
+  # Extract the password from output (format: "New value: <password>")
+  ES_PASSWORD=$(echo "$ES_PASSWORD_OUTPUT" | grep "New value:" | awk '{print $3}')
+  if [ -z "$ES_PASSWORD" ]; then
+    echo -e "[ ERROR ]"
+    echo "Failed to extract password from output:"
+    echo "$ES_PASSWORD_OUTPUT"
+    exit 1
+  fi
+  echo -e "[  OK!  ]"
+else
+  echo -e "[ ERROR ]"
+  echo "Failed to reset Elasticsearch password:"
+  echo "$ES_PASSWORD_OUTPUT"
+  exit 1
+fi
+
+echo ""
+echo "*** IMPORTANT: ElasticSearch password generated: $ES_PASSWORD ***"
+echo "*** Please save this password securely! ***"
+echo ""
 
 echo -e "== Adding Zammad repository to the system\t\c"
 ubuntu_version=$(grep DISTRIB_RELEASE /etc/lsb-release | awk -F= '{ print $2 }')
-wget -qO - https://dl.packager.io/srv/zammad/zammad/key | sudo apt-key add -
-wget -O /etc/apt/sources.list.d/zammad.list https://dl.packager.io/srv/zammad/zammad/stable/installer/ubuntu/${ubuntu_version}.repo
+wget -qO - https://dl.packager.io/srv/zammad/zammad/key | gpg --dearmor -o /usr/share/keyrings/zammad-keyring.gpg
+wget -O /tmp/zammad.list https://dl.packager.io/srv/zammad/zammad/stable/installer/ubuntu/${ubuntu_version}.repo
+sed 's|^deb |deb [signed-by=/usr/share/keyrings/zammad-keyring.gpg] |' /tmp/zammad.list > /etc/apt/sources.list.d/zammad.list
+rm /tmp/zammad.list
 checkStatus
 
 echo -e "== Installing Zammad..."
@@ -131,10 +176,6 @@ apt-get install zammad -y
 
 echo -e "== Removing default nginx configuration (no SSL support)\t\c"
 rm -f /etc/nginx/sites-enabled/zammad.conf
-checkStatus
-
-echo -e "== Fixing file permissions on Zammad's public directory\t\c"  # this was needed at least until version 3.4.x
-find /opt/zammad/public -type f -exec chmod 644 {} \;             # remove these 2 lines if newer versions already fix the issue
 checkStatus
 
 echo -e "== Creating /etc/nginx/ssl directory\t\c"
@@ -211,13 +252,13 @@ server {
   ssl_certificate $ssl_crt;
   ssl_certificate_key $ssl_key;
 
-  ssl_protocols TLSv1.2;
+  ssl_protocols TLSv1.2 TLSv1.3;
 
-  ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+  ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
 
   ssl_dhparam /etc/nginx/ssl/dhparam.pem;
 
-  ssl_prefer_server_ciphers on;
+  ssl_prefer_server_ciphers off;
 
   ssl_session_cache shared:SSL:10m;
   ssl_session_timeout 180m;
@@ -281,8 +322,62 @@ firewall-cmd -q --zone=public --add-service=https --permanent
 echo -e "-- reloading firewall with new settings"
 firewall-cmd -q --reload
 
-echo -e "== Connecting Zammad and ElasticSearch"
-zammad run rails r "Setting.set('es_url', 'http://localhost:9200')"
+echo -e "== Starting Zammad services for initial configuration\t\c"
+systemctl start zammad
+checkStatus
+
+echo -e "== Waiting for Zammad to initialize..."
+# Wait for Zammad to be fully ready
+for i in {1..30}; do
+  if zammad run rails r "puts 'ready'" > /dev/null 2>&1; then
+    echo "Zammad is ready!"
+    break
+  fi
+  if [ $i -eq 30 ]; then
+    echo "WARNING: Zammad may not be fully initialized"
+  fi
+  sleep 3
+done
+
+echo -e "== Extracting and adding ElasticSearch SSL certificate to Zammad\t\c"
+ES_CERT_PATH="/etc/elasticsearch/certs/http_ca.crt"
+cat > /tmp/zammad_add_cert.rb << 'RUBYSCRIPT'
+cert_content = File.read('/etc/elasticsearch/certs/http_ca.crt')
+cert = OpenSSL::X509::Certificate.new(cert_content)
+SSLCertificate.create!(
+  name: 'Elasticsearch CA',
+  certificate: cert_content,
+  not_before: cert.not_before,
+  not_after: cert.not_after
+)
+RUBYSCRIPT
+
+zammad run rails runner /tmp/zammad_add_cert.rb
+rm -f /tmp/zammad_add_cert.rb
+checkStatus
+
+echo -e "== Connecting Zammad and ElasticSearch with secure credentials\t\c"
+zammad run rails r "Setting.set('es_url', 'https://localhost:9200')" || { echo "[ ERROR ] Failed to set es_url"; exit 1; }
+zammad run rails r "Setting.set('es_user', 'elastic')" || { echo "[ ERROR ] Failed to set es_user"; exit 1; }
+zammad run rails r "Setting.set('es_password', '$ES_PASSWORD')" || { echo "[ ERROR ] Failed to set es_password"; exit 1; }
+checkStatus
+
+echo -e "== Restarting Zammad to load SSL certificate\t\c"
+systemctl restart zammad
+checkStatus
+
+echo -e "== Waiting for Zammad to restart..."
+# Wait for Zammad to be fully ready after restart
+for i in {1..30}; do
+  if zammad run rails r "puts 'ready'" > /dev/null 2>&1; then
+    echo "Zammad is ready!"
+    break
+  fi
+  if [ $i -eq 30 ]; then
+    echo "WARNING: Zammad may not be fully restarted"
+  fi
+  sleep 3
+done
 
 echo -e "== Rebuilding indexes"
 zammad run rake zammad:searchindex:rebuild  > /dev/null
@@ -296,15 +391,46 @@ zammad run rails r "Setting.set('es_attachment_ignore', [ '.png', '.jpg', '.jpeg
 echo -e "== Setting maximum size for attachements to be indexed"
 zammad run rails r "Setting.set('es_attachment_max_size_in_mb', 50)"
 
-echo "== Generating dhparam.pem file... seat back and relax... :-)"
-openssl dhparam -out $ssl_dhp 4096 
+echo "== Generating dhparam.pem file (this may take a few minutes)..."
+openssl dhparam -out $ssl_dhp 2048 
 
 echo "== Restarting services..."
 systemctl restart elasticsearch
 systemctl restart zammad
 systemctl restart nginx
 
-echo -e "\n\n== Zammad is ready: http://$zammad_fqdn \n"
+echo -e "== Saving Elasticsearch credentials to /root/.zammad_es_credentials\t\c"
+cat > /root/.zammad_es_credentials << EOFCRED
+Elasticsearch Credentials
+==========================
+URL: https://localhost:9200
+Username: elastic
+Password: $ES_PASSWORD
+
+Generated: $(date)
+
+IMPORTANT: Keep this file secure!
+These credentials are configured in Zammad and required for search functionality.
+EOFCRED
+chmod 600 /root/.zammad_es_credentials
+checkStatus
+
+echo -e "\n\n=========================================="
+echo "== Zammad installation complete! =="
+echo "=========================================="
+echo ""
+echo "Zammad URL: https://$zammad_fqdn"
+echo ""
+echo "Elasticsearch Configuration:"
+echo "  URL: https://localhost:9200"
+echo "  Username: elastic"
+echo "  Password: $ES_PASSWORD"
+echo ""
+echo "Credentials saved to: /root/.zammad_es_credentials"
+echo ""
+echo "Installation log: $zammadLog"
+echo "=========================================="
+echo ""
 
 
 
